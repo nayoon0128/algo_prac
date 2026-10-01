@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWEA 1873 상호의 배틀필드 - 알고리즘 스터디 설명 자료</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#fff; --text:#20252b; --muted:#68717c;
+  --line:#dfe4ea; --blue:#2563eb; --blue2:#dbeafe; --green:#16a34a;
+  --orange:#ea580c; --red:#dc2626; --purple:#7c3aed;
+  --cell:54px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,"Noto Sans KR",Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:#111827;color:white;padding:22px 30px;position:sticky;top:0;z-index:10;box-shadow:0 2px 10px #0002}
+header h1{margin:0 0 5px;font-size:24px}
+header p{margin:0;color:#cbd5e1;font-size:14px}
+.layout{display:grid;grid-template-columns:46% 54%;min-height:calc(100vh - 90px)}
+.left,.right{padding:24px}
+.left{border-right:1px solid var(--line);background:#f8fafc}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #00000008}
+.panel h2{font-size:17px;margin:0 0 13px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{border:0;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer;background:#e5e7eb;color:#111827}
+button:hover{filter:brightness(.97)}
+button.primary{background:var(--blue);color:white}
+button.green{background:#dcfce7;color:#166534}
+button.orange{background:#ffedd5;color:#9a3412}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,input{border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:white}
+#mapWrap{display:flex;justify-content:center;overflow:auto;padding:10px}
+.map{display:grid;gap:3px;background:#334155;padding:5px;border-radius:8px;width:max-content}
+.cell{width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;border-radius:4px;position:relative;transition:.25s}
+.cell.plain{background:#e5e7eb;color:#64748b}
+.cell.brick{background:#b45309;color:white}
+.cell.steel{background:#475569;color:white}
+.cell.water{background:#38bdf8;color:white}
+.cell.tank{background:#fef08a;color:#111827;box-shadow:inset 0 0 0 3px #f59e0b}
+.cell.changed{animation:pulse .55s}
+@keyframes pulse{50%{transform:scale(1.12);box-shadow:0 0 0 4px #2563eb55}}
+.coord{position:absolute;bottom:2px;right:4px;font-size:9px;font-weight:500;opacity:.55}
+.status{font-size:14px;line-height:1.6}
+.status strong{color:var(--blue)}
+.sequence{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.action{width:36px;height:36px;border-radius:8px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:800}
+.action.current{background:var(--blue);color:white;transform:scale(1.12)}
+.action.done{background:#bbf7d0;color:#166534}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:20px;height:20px;border-radius:4px;display:inline-block;border:1px solid #999}
+.i-plain{background:#e5e7eb}.i-brick{background:#b45309}.i-steel{background:#475569}.i-water{background:#38bdf8}.i-tank{background:#fef08a}
+pre{margin:0;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:16px;overflow:auto;line-height:1.55;font-size:13px}
+.codeLine{display:block;padding:1px 6px;border-radius:4px}
+.codeLine.hl{background:#1d4ed8;color:#fff;box-shadow:inset 3px 0 #60a5fa}
+.codeLine.subhl{background:#14532d;color:#dcfce7}
+.explain{background:#eff6ff;border-left:4px solid var(--blue);padding:12px 14px;border-radius:7px;line-height:1.65;font-size:14px}
+.inputBox{font-family:ui-monospace,monospace;font-size:18px;letter-spacing:5px}
+.stepTitle{display:flex;justify-content:space-between;align-items:center}
+.badge{font-size:12px;background:#e0e7ff;color:#3730a3;border-radius:99px;padding:5px 9px;font-weight:700}
+.small{font-size:12px;color:var(--muted)}
+textarea{width:100%;min-height:100px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-family:monospace}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.left{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>SWEA 1873 · 상호의 배틀필드</h1>
+  <p>알고리즘 스터디용 인터랙티브 설명 자료 — 왼쪽: 맵 변화 / 오른쪽: 실행되는 코드와 사고 과정</p>
+</header>
+
+<div class="layout">
+<section class="left">
+  <div class="panel">
+    <h2>① 실행할 입력 설정</h2>
+    <div class="small">기본 예시는 설명용입니다. 아래 맵과 명령어를 직접 바꿔서 실습할 수 있습니다.</div>
+    <p><b>맵</b></p>
+    <textarea id="mapInput">.....
+..*..
+.^.-.
+..#..
+.....</textarea>
+    <p><b>사용자 명령어</b></p>
+    <input id="actionsInput" class="inputBox" value="RRSUSDSL" maxlength="50">
+    <div class="controls" style="margin-top:10px">
+      <button class="primary" onclick="loadScenario()">입력 적용</button>
+      <button onclick="reset()">처음부터</button>
+      <button class="green" onclick="step()">한 단계 실행 ▶</button>
+      <button class="orange" onclick="runAll()">전체 실행 ⏩</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="stepTitle">
+      <h2>② 현재 맵 상태</h2>
+      <span class="badge" id="stepBadge">START</span>
+    </div>
+    <div id="mapWrap"><div id="map" class="map"></div></div>
+    <div class="legend">
+      <span><i class="i-plain"></i> 평지 .</span>
+      <span><i class="i-brick"></i> 벽돌 *</span>
+      <span><i class="i-steel"></i> 강철 #</span>
+      <span><i class="i-water"></i> 물 -</span>
+      <span><i class="i-tank"></i> 전차</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>③ 지금 무슨 일이 일어나고 있나?</h2>
+    <div id="status" class="status"></div>
+    <div class="sequence" id="sequence"></div>
+  </div>
+
+  <div class="panel">
+    <h2>④ 핵심 상태값</h2>
+    <div id="state" class="status"></div>
+  </div>
+</section>
+
+<section class="right">
+  <div class="panel">
+    <div class="stepTitle">
+      <h2>실행 중인 코드</h2>
+      <span class="badge" id="codeBadge">입력 대기</span>
+    </div>
+    <pre id="code"></pre>
+  </div>
+
+  <div class="panel">
+    <h2>코드 해석</h2>
+    <div id="explain" class="explain">
+      맵과 명령어를 설정한 뒤 <b>한 단계 실행</b>을 눌러보세요.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>발표할 때 기억할 핵심 구조</h2>
+    <div class="status">
+      <b>1. 입력</b> → 맵을 <code>char[][]</code>에 저장하면서 전차 좌표 <code>hi, we</code>를 기억<br>
+      ↓<br>
+      <b>2. 명령어 반복</b> → <code>U/D/L/R/S</code>를 하나씩 처리<br>
+      ↓<br>
+      <b>3. 이동</b> → 방향을 먼저 바꾸고, 다음 칸이 <code>.</code>일 때만 이동<br>
+      ↓<br>
+      <b>4. 발사</b> → 전차 방향을 <code>dir</code>로 변환하고 델타 배열로 직진<br>
+      ↓<br>
+      <b>5. 결과</b> → 모든 명령 처리 후 <code>map</code> 전체 출력
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+const codeBlocks = {
+START: [
+"// 맵을 char[][]에 저장",
+"char[][] map = new char[H][W];",
+"int hi = 0;",
+"int we = 0;",
+"",
+"// 맵을 입력받으면서 전차 위치를 찾는다.",
+"for (int h=0; h<H; h++){",
+"    String mapLine = sc.next();",
+"    for (int w=0; w<W; w++){",
+"        map[h][w] = mapLine.charAt(w);",
+"        if (mapLine.charAt(w)=='^' || mapLine.charAt(w)=='v'",
+"            || mapLine.charAt(w)=='>' || mapLine.charAt(w)=='<'){",
+"            hi = h;",
+"            we = w;",
+"        }",
+"    }",
+"}"
+],
+U: [
+"if (action[n] == 'U') {",
+"    map[hi][we] = '^';        // ① 방향을 위로 변경",
+"    if ((hi-1) >= 0 && map[hi-1][we] == '.') {",
+"        map[hi][we] = '.';     // ② 기존 위치는 평지",
+"        map[hi-1][we] = '^';   // ③ 한 칸 위로 이동",
+"        hi--;                  // ④ 좌표 갱신",
+"    }",
+"}"
+],
+D: [
+"if (action[n] == 'D') {",
+"    map[hi][we] = 'v';        // ① 방향을 아래로 변경",
+"    if ((hi+1) < H && map[hi+1][we] == '.') {",
+"        map[hi][we] = '.';",
+"        map[hi+1][we] = 'v';",
+"        hi++;",
+"    }",
+"}"
+],
+L: [
+"if (action[n] == 'L') {",
+"    map[hi][we] = '<';        // ① 방향을 왼쪽으로 변경",
+"    if ((we-1) >= 0 && map[hi][we-1] == '.') {",
+"        map[hi][we] = '.';",
+"        map[hi][we-1] = '<';",
+"        we--;",
+"    }",
+"}"
+],
+R: [
+"if (action[n] == 'R') {",
+"    map[hi][we] = '>';        // ① 방향을 오른쪽으로 변경",
+"    if ((we+1) < W && map[hi][we+1] == '.') {",
+"        map[hi][we] = '.';",
+"        map[hi][we+1] = '>';",
+"        we++;",
+"    }",
+"}"
+],
+S: [
+"if (action[n] == 'S') {",
+"    int[] dr = {-1, 1, 0, 0};",
+"    int[] dc = { 0, 0,-1, 1};",
+"    int dir = 0;",
+"    int h = hi;",
+"    int w = we;",
+"",
+"    // 전차 방향 → 델타 방향 번호",
+"    if (map[h][w] == '^') dir = 0;",
+"    else if (map[h][w] == 'v') dir = 1;",
+"    else if (map[h][w] == '<') dir = 2;",
+"    else if (map[h][w] == '>') dir = 3;",
+"",
+"    while (true) {",
+"        int r = h + dr[dir];",
+"        int c = w + dc[dir];",
+"",
+"        if (r>=0 && r<H && c>=0 && c<W) {",
+"            if (map[r][c] == '*') {",
+"                map[r][c] = '.';     // 벽돌벽 파괴",
+"                break;",
+"            } else if (map[r][c] == '#') {",
+"                break;               // 강철벽은 그대로",
+"            } else {",
+"                h = r;               // 계속 직진",
+"                w = c;",
+"            }",
+"        } else {",
+"            break;                   // 맵 밖",
+"        }",
+"    }",
+"}"
+]
+};
+
+let initialMap=[], map=[], actions=[], actionIndex=0, tank={r:0,c:0};
+let lastChange=[];
+let running=false;
+
+function parseMap(){
+  return document.getElementById('mapInput').value.trim().split(/\n/).map(x=>x.trim().split(''));
+}
+function findTank(){
+  for(let r=0;r<map.length;r++) for(let c=0;c<map[0].length;c++)
+    if("^v<>".includes(map[r][c])) return {r,c};
+  return {r:0,c:0};
+}
+function loadScenario(){
+  const m=parseMap();
+  if(!m.length || !m.every(row=>row.length===m[0].length)){alert("맵의 각 줄 길이를 같게 입력해주세요.");return}
+  if(!m.flat().some(x=>"^v<>".includes(x))){alert("맵에 전차(^, v, <, >)가 하나 있어야 합니다.");return}
+  map=m; initialMap=m.map(r=>[...r]);
+  actions=document.getElementById('actionsInput').value.trim().toUpperCase().split('');
+  actionIndex=0; tank=findTank(); lastChange=[]; running=false;
+  render();
+}
+function reset(){
+  if(!initialMap.length){loadScenario();return}
+  map=initialMap.map(r=>[...r]); actionIndex=0; tank=findTank(); lastChange=[];
+  render();
+}
+function render(){
+  const el=document.getElementById('map'); el.innerHTML='';
+  el.style.gridTemplateColumns=`repeat(${map[0].length}, var(--cell))`;
+  const tankPos=findTank(); tank=tankPos;
+  map.forEach((row,r)=>row.forEach((ch,c)=>{
+    const d=document.createElement('div');
+    d.className='cell '+({
+      '.':'plain','*':'brick','#':'steel','-':'water',
+      '^':'tank','v':'tank','<':'tank','>':'tank'
+    }[ch]||'plain');
+    d.textContent=ch;
+    if(lastChange.some(p=>p.r===r&&p.c===c)) d.classList.add('changed');
+    const co=document.createElement('span');co.className='coord';co.textContent=`${r},${c}`;d.appendChild(co);
+    el.appendChild(d);
+  }));
+  const seq=document.getElementById('sequence');seq.innerHTML='';
+  actions.forEach((a,i)=>{
+    const d=document.createElement('div');d.className='action '+(i<actionIndex?'done ':'')+(i===actionIndex?'current':'');d.textContent=a;seq.appendChild(d);
+  });
+  document.getElementById('stepBadge').textContent=actionIndex===0?'START':`${actionIndex}/${actions.length}`;
+  document.getElementById('state').innerHTML=`전차 위치: <strong>(행 ${tank.r}, 열 ${tank.c})</strong> &nbsp; | &nbsp; 현재 문자: <strong>${map[tank.r][tank.c]}</strong> &nbsp; | &nbsp; 다음 명령: <strong>${actions[actionIndex]||'종료'}</strong>`;
+}
+function setCode(type){
+  const arr=codeBlocks[type]||codeBlocks.START;
+  document.getElementById('code').innerHTML=arr.map((x,i)=>{
+    let cls='';
+    if(type!=='START'){
+      if(i===0) cls='hl';
+      if(type!=='S' && i>=1 && i<=2) cls='hl';
+      if(type==='S' && (i===3 || i===4 || i===5 || i===6 || i===7 || i===8 || i===9 || i===10)) cls='subhl';
+    }
+    return `<span class="codeLine ${cls}">${escapeHtml(x)||' '}</span>`;
+  }).join('');
+  document.getElementById('codeBadge').textContent=type==='START'?'초기화':`action = '${type}'`;
+}
+function escapeHtml(s){return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+function setExplain(html){document.getElementById('explain').innerHTML=html}
+
+function step(){
+  if(actionIndex>=actions.length){
+    setExplain("<b>모든 명령어 처리가 끝났습니다.</b><br>이제 현재 map 전체를 출력하면 정답 형태가 됩니다.");
+    return;
+  }
+  const a=actions[actionIndex], before=map.map(r=>[...r]); lastChange=[];
+  setCode(a);
+  const oldTank=findTank();
+  let message='';
+  if("UDLR".includes(a)){
+    const delta={U:[-1,0],D:[1,0],L:[0,-1],R:[0,1]}[a];
+    const face={U:'^',D:'v',L:'<',R:'>'}[a];
+    map[oldTank.r][oldTank.c]=face;
+    const nr=oldTank.r+delta[0], nc=oldTank.c+delta[1];
+    if(nr>=0&&nr<map.length&&nc>=0&&nc<map[0].length&&map[nr][nc]==='.'){
+      map[oldTank.r][oldTank.c]='.';
+      map[nr][nc]=face;
+      message=`<b>${a}</b> : 먼저 전차의 방향을 <b>${face}</b>로 바꾼다. 다음 칸이 <b>.</b>이므로 한 칸 이동한다.`;
+    }else{
+      message=`<b>${a}</b> : 전차의 방향은 <b>${face}</b>로 바뀐다. 하지만 다음 칸이 평지가 아니거나 맵 밖이므로 <b>이동하지 않는다.</b>`;
+    }
+    const nt=findTank(); lastChange=[oldTank,nt];
+    setExplain(message+`<br><br>핵심: <code>map[hi][we]</code>는 전차의 방향까지 저장하고, <code>hi/we</code>는 전차의 실제 좌표를 추적한다.`);
+  }else if(a==='S'){
+    let dir={'^':0,'v':1,'<':2,'>':3}[map[oldTank.r][oldTank.c]];
+    const dr=[-1,1,0,0],dc=[0,0,-1,1];
+    let h=oldTank.r,w=oldTank.c, hit='맵 밖';
+    while(true){
+      const r=h+dr[dir],c=w+dc[dir];
+      if(r<0||r>=map.length||c<0||c>=map[0].length){hit='맵 밖';break}
+      if(map[r][c]==='*'){map[r][c]='.';lastChange=[{r,c}];hit='벽돌벽(*)';break}
+      if(map[r][c]==='#'){hit='강철벽(#)';break}
+      h=r;w=c;
+    }
+    message=`<b>S</b> : 전차가 <b>${map[oldTank.r][oldTank.c]}</b> 방향을 보고 있으므로 <b>dir=${dir}</b>을 선택한다. 이후 <code>dr/dc</code>로 한 칸씩 전진한다.`;
+    if(hit==='벽돌벽(*)') message+=`<br>→ <b>벽돌벽(*)을 만났으므로 그 칸을 '.'로 바꾸고 종료</b>한다.`;
+    else if(hit==='강철벽(#)') message+=`<br>→ <b>강철벽(#)을 만났으므로 아무 변화 없이 종료</b>한다.`;
+    else message+=`<br>→ <b>맵 밖</b>으로 나가므로 아무 변화 없이 종료한다.`;
+    setExplain(message+`<br><br>핵심: 포탄의 이동 좌표 <code>h,w</code>는 전차 좌표 <code>hi,we</code>와 별개다.`);
+  }else{
+    message=`<b>${a}</b>는 정의된 명령이 아니므로 무시합니다.`;
+    setExplain(message);
+  }
+  actionIndex++;
+  render();
+}
+function runAll(){
+  if(running)return;
+  running=true;
+  const timer=setInterval(()=>{
+    if(actionIndex>=actions.length){clearInterval(timer);running=false;return}
+    step();
+  },700);
+}
+loadScenario();
+</script>
+</body>
+</html>
